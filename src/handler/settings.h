@@ -39,6 +39,7 @@ struct Settings
 
     //generator settings
     bool generatorMode = false;
+    bool cliMode = false;
     std::string generateProfiles;
 
     //preferences

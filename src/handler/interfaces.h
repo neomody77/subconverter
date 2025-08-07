@@ -29,4 +29,7 @@ std::string template_webGet(inja::Arguments &args);
 std::string jinja2_webGet(const std::string &url);
 std::string parseHostname(inja::Arguments &args);
 
+int cliConverter();
+std::string cliSubconverter(const std::string &target, const std::string &url, const std::string &config, const std::map<std::string, std::string> &extra_args);
+
 #endif // INTERFACES_H_INCLUDED

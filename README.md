@@ -13,6 +13,10 @@ Utility to convert between various proxy subscription formats.
 
 - [subconverter](#subconverter)
   - [Supported Types](#supported-types)
+  - [CLI Usage](#cli-usage)
+    - [Basic Command](#basic-command)
+    - [Options](#options)
+    - [Examples](#examples)
   - [Quick Usage](#quick-usage)
     - [Access Interface](#access-interface)
     - [Description](#description)
@@ -49,6 +53,51 @@ Notice:
 
    - https://t.me/http?server=1.2.3.4&port=233&user=user&pass=pass&remark=Example
 
+
+---
+
+## CLI Usage
+
+> Convert subscriptions directly from command line without starting the web server
+
+### Basic Command
+
+```bash
+./subconverter convert --target <target> --url <url> [options]
+```
+
+### Options
+
+| Option    | Required | Example | Description |
+| --------- | :------: | :------ | ----------- |
+| --target  | Yes      | clash   | Target subscription type. Same as [Supported Types](#supported-types). |
+| --url     | Yes      | https://example.com/sub | Source subscription URL or local file path. |
+| --output  | No       | config.yaml | Output file path. If not specified, outputs to stdout. |
+| --config  | No       | config.ini | External configuration file path (URL or local file). |
+| --group   | No       | MyGroup | Custom group name for all nodes. |
+| --emoji   | No       | true/false | Add emoji to node names (default: false). |
+| --sort    | No       | true/false | Sort nodes by name (default: false). |
+| --udp     | No       | true/false | Enable UDP support (default: false). |
+| --tfo     | No       | true/false | Enable TCP Fast Open (default: false). |
+
+### Examples
+
+```bash
+# Convert subscription to Clash format and save to file
+./subconverter convert --target clash --url "https://example.com/subscription" --output "clash.yaml"
+
+# Convert local subscription file to Surge format with emoji and sorting
+./subconverter convert --target surge --url "sub.txt" --emoji true --sort true --output "surge.conf"
+
+# Convert to stdout (useful for piping)
+./subconverter convert --target ss --url "https://example.com/sub"
+
+# Use external config file
+./subconverter convert --target clash --url "sub.txt" --config "custom.ini" --output "output.yaml"
+
+# Merge multiple subscriptions (separate URLs with |)
+./subconverter convert --target clash --url "https://sub1.com|https://sub2.com" --output "merged.yaml"
+```
 
 ---
 

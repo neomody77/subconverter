@@ -2,6 +2,7 @@
 #include <string>
 #include <mutex>
 #include <numeric>
+#include <fstream>
 
 #include <yaml-cpp/yaml.h>
 
@@ -1571,4 +1572,126 @@ std::string renderTemplate(RESPONSE_CALLBACK_ARGS)
         writeLog(0, "Render completed.", LOG_LEVEL_INFO);
 
     return output_content;
+}
+
+std::string cliSubconverter(const std::string &target, const std::string &url, const std::string &config, const std::map<std::string, std::string> &extra_args)
+{
+    // Create mock request and response objects
+    Request request;
+    Response response;
+    
+    // Set up the request arguments
+    request.argument.emplace("target", target);
+    request.argument.emplace("url", url);
+    if (!config.empty()) {
+        request.argument.emplace("config", config);
+    }
+    
+    // Add extra arguments
+    for (const auto &arg : extra_args) {
+        request.argument.emplace(arg.first, arg.second);
+    }
+    
+    // Add some default headers that might be expected
+    request.headers["User-Agent"] = "SubConverter-CLI/1.0";
+    
+    // Call the existing subconverter function
+    return subconverter(request, response);
+}
+
+int cliConverter()
+{
+    extern int argc_global;
+    extern char **argv_global;
+    
+    if (argc_global < 3) {
+        std::cout << "Usage: " << argv_global[0] << " convert --target <target> --url <url> [options]\n";
+        std::cout << "\nOptions:\n";
+        std::cout << "  --target <target>     Target format (clash, surge, quanx, etc.)\n";
+        std::cout << "  --url <url>           Source subscription URL\n";
+        std::cout << "  --config <config>     External config file/URL (optional)\n";
+        std::cout << "  --output <file>       Output file path (default: stdout)\n";
+        std::cout << "  --group <name>        Custom group name (optional)\n";
+        std::cout << "  --emoji <true/false>  Add emoji to node names (optional)\n";
+        std::cout << "  --sort <true/false>   Sort nodes by name (optional)\n";
+        std::cout << "  --udp <true/false>    Enable UDP support (optional)\n";
+        std::cout << "  --tfo <true/false>    Enable TCP Fast Open (optional)\n";
+        std::cout << "\nExamples:\n";
+        std::cout << "  " << argv_global[0] << " convert --target clash --url \"https://example.com/sub\"\n";
+        std::cout << "  " << argv_global[0] << " convert --target surge --url \"sub.txt\" --output \"config.conf\"\n";
+        return 1;
+    }
+    
+    std::string command = argv_global[1];
+    if (command != "convert") {
+        std::cerr << "Error: Unknown command '" << command << "'. Use 'convert'.\n";
+        return 1;
+    }
+    
+    std::string target, url, config, output;
+    std::map<std::string, std::string> extra_args;
+    
+    // Parse command line arguments
+    for (int i = 2; i < argc_global - 1; i++) {
+        std::string arg = argv_global[i];
+        if (arg.substr(0, 2) != "--") continue;
+        
+        std::string key = arg.substr(2);
+        std::string value = (i + 1 < argc_global) ? argv_global[++i] : "";
+        
+        if (key == "target") {
+            target = value;
+        } else if (key == "url") {
+            url = value;
+        } else if (key == "config") {
+            config = value;
+        } else if (key == "output") {
+            output = value;
+        } else {
+            extra_args[key] = value;
+        }
+    }
+    
+    // Validate required arguments
+    if (target.empty()) {
+        std::cerr << "Error: --target is required\n";
+        return 1;
+    }
+    if (url.empty()) {
+        std::cerr << "Error: --url is required\n";
+        return 1;
+    }
+    
+    // Initialize the system (same as in main)
+    readConf();
+    if (!global.updateRulesetOnRequest) {
+        refreshRulesets(global.customRulesets, global.rulesetsContent);
+    }
+    
+    try {
+        // Perform the conversion
+        std::string result = cliSubconverter(target, url, config, extra_args);
+        
+        // Output the result
+        if (output.empty()) {
+            std::cout << result;
+        } else {
+            std::ofstream outFile(output);
+            if (!outFile.is_open()) {
+                std::cerr << "Error: Cannot write to file '" << output << "'\n";
+                return 1;
+            }
+            outFile << result;
+            outFile.close();
+            std::cerr << "Conversion completed. Output saved to: " << output << "\n";
+        }
+        
+        return 0;
+    } catch (const std::exception &e) {
+        std::cerr << "Error: " << e.what() << "\n";
+        return 1;
+    } catch (...) {
+        std::cerr << "Error: Unknown exception occurred\n";
+        return 1;
+    }
 }
